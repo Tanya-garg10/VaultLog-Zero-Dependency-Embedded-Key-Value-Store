@@ -1,158 +1,190 @@
 # VaultLog — Zero-Dependency Embedded Key-Value Store
 
-> **A practical key-value storage engine, built from scratch with Go's standard library. Zero dependencies.**
+> A practical persistent key-value storage engine built from scratch using Go's standard library. Zero third-party dependencies.
 
----
+## Problem
 
-## 💡 The Problem
-Embedded databases and key-value stores often require heavy external dependencies or complex build processes:
-- Popular embedded databases (SQLite, BadgerDB, BoltDB) require CGO, external dependencies, or complex build toolchains.
-- In-memory stores lack persistence and crash recovery capabilities.
-- In restricted environments (air-gapped systems, secure enterprise CI/CD runners, locked-down edge nodes), installing external Go packages creates supply-chain vulnerabilities.
-- Many key-value stores sacrifice simplicity for features, making them difficult to understand and audit.
+Embedded databases and key-value stores often rely on external packages or pre-built storage engines. This can increase dependency complexity and make the underlying storage layer harder to inspect and understand.
 
-## 🚀 The Solution
-**VaultLog** is a persistent embedded key-value store built entirely with Go 1.27 standard library:
-1. **Append-Only Log Storage**: Write-Ahead Log (WAL) architecture for durability and crash recovery.
-2. **In-Memory Indexing**: Fast read operations with hash-based in-memory index.
-3. **Crash/Restart Recovery**: Automatic recovery from unclean shutdowns using log replay.
-4. **Zero Third-Party Dependencies**: Built exclusively with Go standard library packages.
-5. **Simple API**: Clean, intuitive interface for common key-value operations.
+VaultLog explores how far a practical embedded key-value store can go using only Go's standard library.
 
----
+## Solution
 
-## 🛡️ Why Zero Dependency?
-- **Zero Supply Chain Risk**: Zero threat of typosquatting, hijacked upstream packages, or compromised telemetry scripts.
-- **Instant Cold Starts**: Fast startup with minimal memory footprint.
-- **Portability**: Runs on any system with Go 1.27 installed without external dependencies.
-- **Longevity**: Standard library APIs are stable for decades.
+VaultLog is a persistent embedded key-value store based on an append-only log and an in-memory index.
 
----
+It provides:
 
-## ✨ Features
+* Persistent key-value storage
+* Append-only storage log
+* In-memory hash indexing
+* Restart recovery through log replay
+* Data integrity checks using CRC32
+* Thread-safe operations
+* Simple CLI commands
+* Zero third-party runtime dependencies
 
-- **Append-Only Write-Ahead Log**: Durable storage with append-only operations for data integrity.
-- **In-Memory Hash Index**: Fast O(1) read operations using in-memory hash map.
-- **Automatic Crash Recovery**: Log replay mechanism to recover from unclean shutdowns.
-- **Simple Key-Value API**: Intuitive Put, Get, Delete operations with type-safe values.
-- **Concurrent Access**: Thread-safe operations using Go's sync primitives.
-- **Compact Storage**: Efficient binary encoding for minimal disk usage.
-- **Zero External Dependencies**: Built entirely with Go standard library packages.
+## Architecture
 
----
-
-## 🏗️ Architecture
-
-```
-                               ┌──────────────────────────────────────────────┐
-                               │              VaultLog Engine                  │
-                               │         (Go 1.27 Standard Library)           │
-                               └──────────────────────┬───────────────────────┘
-                                                      │
-                       ┌──────────────────────────────┴──────────────────────────────┐
-                       │                                                             │
-            ┌──────────▼──────────┐                                       ┌──────────▼──────────┐
-            │   In-Memory Index   │                                       │   Write-Ahead Log   │
-            │   (Hash Map)        │                                       │   (Append-Only)     │
-            │   Fast O(1) Reads   │                                       │   Persistent Storage │
-            └──────────┬──────────┘                                       └──────────┬──────────┘
-                       │                                                             │
-     ┌─────────────────┼─────────────────┐                                           │
-     │                 │                 │                                           │
-┌────▼────────┐ ┌──────▼───────┐ ┌───────▼────────┐                                  │
-│   Put/Get   │ │   Delete     │ │   Recovery     │                                  │
-│   Operations│ │   Operations │ │   Engine       │                                  │
-│(API Layer)  │ │(API Layer)   │ │(Log Replay)    │                                  │
-└────┬────────┘ └──────┬───────┘ └────────────────┘                                  │
-     │                 │                                                             │
-     └────────┬────────┘                                                             │
-              │                                                                      │
-     ┌────────▼────────────────┐                                                     │
-     │   Sync Primitives       │◄────────────────────────────────────────────────────┘
-     │   (Mutex/RWMutex)       │
-     │   Thread-Safe Access    │
-     └─────────────────────────┘
+```text
+                    VaultLog
+                       │
+              ┌────────┴────────┐
+              │                 │
+       In-Memory Index     Append-Only Log
+              │                 │
+              │                 ▼
+              │          Persistent File
+              │
+              ▼
+        Fast Key Lookup
 ```
 
----
+### Write Flow
 
-## 🧰 Tech Stack
-- **Runtime**: Go 1.27
-- **Standard Library Packages**:
-  - `os` & `io` (File I/O, persistent storage)
-  - `sync` (Mutex, RWMutex for thread-safe operations)
-  - `encoding/binary` (Efficient binary encoding)
-  - `encoding/json` (JSON serialization)
-  - `hash/crc32` (Data integrity checksums)
-  - `path/filepath` (Safe path operations)
-  - `testing` (Native test runner)
-- **Third-Party Dependencies**: **`0`**
+```text
+Put(key, value)
+      ↓
+Encode Record
+      ↓
+Append to Log
+      ↓
+Update Index
+```
 
----
+### Recovery Flow
 
-## 📦 Installation & Quick Start
+```text
+Persistent Log
+      ↓
+Read Records
+      ↓
+Validate Records
+      ↓
+Replay Operations
+      ↓
+Rebuild Index
+```
 
-### 1. Build and Run
+## Features
+
+### Persistent Storage
+
+Data is stored on disk through an append-only log rather than being kept only in memory.
+
+### In-Memory Index
+
+An in-memory hash map provides fast average-case key lookups without scanning the entire log.
+
+### Recovery
+
+On startup, VaultLog replays the storage log and reconstructs the current state.
+
+### Integrity Checks
+
+Records include CRC32 checksums to detect corrupted data during recovery.
+
+### Concurrency
+
+Access to the storage engine is protected using Go's standard synchronization primitives.
+
+### CLI
+
+VaultLog supports core operations such as:
+
+```text
+set
+get
+delete
+list
+stats
+```
+
+## Tech Stack
+
+**Language:** Go 1.27
+
+**Standard Library:**
+
+* `os` — file and filesystem operations
+* `io` — file and stream handling
+* `sync` — concurrency control
+* `encoding/binary` — binary record encoding
+* `encoding/json` — serialization
+* `hash/crc32` — integrity checks
+* `path/filepath` — filesystem paths
+* `flag` — command-line parsing
+* `testing` — automated tests
+
+**Third-party runtime dependencies: 0**
+
+## Quick Start
+
+### Requirements
+
+Go 1.27+
+
+### Build
+
 ```bash
-go build -o vaultlog
+go build -o vaultlog .
+```
+
+### Run
+
+```bash
 ./vaultlog
 ```
 
-### 2. Use as a Library
-```go
-import "github.com/Tanya-garg10/VaultLog"
+## Testing
 
-db, err := vaultlog.Open("data.db")
-if err != nil {
-    log.Fatal(err)
-}
-defer db.Close()
+VaultLog uses Go's built-in testing framework.
 
-db.Put("key", []byte("value"))
-value, err := db.Get("key")
-```
-
----
-
-## 🧪 Testing
-
-Run the full automated test suite using Go's native test runner:
 ```bash
 go test ./...
 ```
-The suite executes comprehensive tests covering:
-- Basic Put/Get/Delete operations
-- Crash recovery and log replay
-- Concurrent access patterns
-- Data integrity and checksums
-- Performance benchmarks
 
----
+Tests cover storage operations, persistence, recovery, integrity validation, concurrency, and edge cases.
 
-## 🔒 Dependency Proof & Audit
-Verify zero external dependencies:
+## Zero-Dependency Verification
+
+Check the module dependency graph:
+
 ```bash
 go mod graph
 ```
-Output:
+
+Check the complete dependency tree:
+
+```bash
+go list -deps ./...
 ```
-github.com/Tanya-garg10/VaultLog
-```
-No external dependencies - only Go standard library packages used.
 
----
+VaultLog contains no third-party runtime dependencies.
 
-## ⚠️ Known Boundaries & Limitations
-- **Single-Node Storage**: Designed for single-node embedded use cases, not distributed systems.
-- **Append-Only Log**: Log files grow over time and require periodic compaction.
-- **In-Memory Index**: The index is kept in memory, so very large datasets may require significant RAM.
-- **Go 1.27+**: Requires Go 1.27 or later for standard library compatibility.
+## Standard Library Replacements
 
----
+| Normally Used              | VaultLog Uses                          |
+| -------------------------- | -------------------------------------- |
+| `google/uuid`              | Go standard library UUID functionality |
+| `testify`                  | `testing`                              |
+| `logrus` / `zap`           | `log` / `log/slog`                     |
+| External file utilities    | `os` / `io`                            |
+| External binary encoders   | `encoding/binary`                      |
+| External hashing utilities | `hash/crc32`                           |
+| External CLI parsers       | `flag`                                 |
+| External path utilities    | `path/filepath`                        |
 
-## 🎯 Quick Demo
+See [`STDLIB.md`](STDLIB.md) for the complete dependency replacement log.
 
-1. **Build the Database**: Run `go build -o vaultlog && ./vaultlog`
-2. **Store Data**: Use the API to store key-value pairs
-3. **Simulate Crash**: Kill the process and restart to see automatic recovery
-4. **Verify Integrity**: Run `go test ./...` to verify data integrity
+## Limitations
+
+* Designed for embedded, single-process use
+* In-memory index requires RAM proportional to the number of indexed keys
+* Append-only storage requires eventual log compaction
+* No SQL/query language
+* No distributed replication
+* Not intended to replace full production database systems
+
+## License
+
+MIT
