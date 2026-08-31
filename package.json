@@ -1,0 +1,17 @@
+{
+  "name": "wireforge-zero",
+  "version": "1.0.0",
+  "description": "Zero-Dependency Developer API Sandbox, Mock Engine, Schema Validator & Traffic Replay Studio",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "test": "node --test tests/**/*.test.mjs",
+    "audit": "node audit.mjs",
+    "build": "node build-bundle.mjs",
+    "lint": "node audit.mjs"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

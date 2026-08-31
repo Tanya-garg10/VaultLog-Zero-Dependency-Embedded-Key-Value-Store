@@ -1,0 +1,6 @@
+{
+  "name": "WireForge Zero",
+  "description": "Zero-dependency developer API sandbox, dynamic mock server, JSON Schema validator, request diffing, and WAL-backed traffic replay studio built with standard library.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

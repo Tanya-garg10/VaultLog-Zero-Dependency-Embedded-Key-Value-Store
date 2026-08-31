@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WireForge Zero - Zero-Dependency API Studio</title>
+  <meta name="description" content="Zero-dependency developer API sandbox, dynamic mock server, JSON Schema validator, and traffic studio built with Node.js standard library.">
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-badge">⚡</div>
+        <div class="brand-text">
+          <span class="brand-title">WireForge <span class="accent-badge">Zero</span></span>
+          <span class="brand-subtitle">Standard-Library Developer API Studio</span>
+        </div>
+      </div>
+
+      <div class="header-badges">
+        <span class="status-chip sse-status" id="sse-indicator">
+          <span class="pulse-dot"></span> Live Stream
+        </span>
+        <span class="status-chip badge-audit" id="audit-badge">
+          🛡️ 0 Runtime Deps
+        </span>
+        <span class="status-chip badge-wal" id="wal-badge">
+          💾 WAL Persisted
+        </span>
+      </div>
+
+      <div class="header-actions">
+        <button id="theme-toggle-btn" class="btn btn-secondary btn-sm" title="Toggle Theme">
+          🌓 Theme
+        </button>
+        <button id="quick-curl-btn" class="btn btn-primary btn-sm">
+          ▶ Test Request
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs" role="tablist">
+      <button class="tab-btn active" data-tab="tab-traffic" id="nav-traffic">
+        📡 Live Traffic <span class="badge-count" id="traffic-count">0</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-mocks" id="nav-mocks">
+        ⚡ Mock Routes <span class="badge-count" id="mocks-count">2</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-collections" id="nav-collections">
+        📦 REST Collections <span class="badge-count" id="collections-count">2</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-schema" id="nav-schema">
+        🛡️ Schema Workbench
+      </button>
+      <button class="tab-btn" data-tab="tab-webhooks" id="nav-webhooks">
+        🪝 Webhook Catcher
+      </button>
+      <button class="tab-btn" data-tab="tab-diff" id="nav-diff">
+        🔍 Traffic Diff & Analytics
+      </button>
+      <button class="tab-btn" data-tab="tab-audit" id="nav-audit">
+        📋 STDLIB & Audit Proof
+      </button>
+    </nav>
+
+    <!-- Main Content Workspace -->
+    <main class="workspace-main">
+      
+      <!-- TAB 1: LIVE TRAFFIC STUDIO -->
+      <section id="tab-traffic" class="tab-pane active">
+        <div class="pane-toolbar">
+          <div class="toolbar-search">
+            <input type="text" id="traffic-search" class="input-text" placeholder="Filter by path, method, status, or keyword...">
+          </div>
+          <div class="toolbar-filters">
+            <select id="traffic-method-filter" class="select-control">
+              <option value="">All Methods</option>
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="PATCH">PATCH</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+            <button id="traffic-clear-btn" class="btn btn-secondary btn-sm">Clear Log</button>
+            <button id="traffic-export-har" class="btn btn-secondary btn-sm">Export HAR</button>
+          </div>
+        </div>
+
+        <div class="traffic-split-view">
+          <div class="traffic-list-panel">
+            <div class="table-header-row">
+              <span class="col-method">Method</span>
+              <span class="col-status">Status</span>
+              <span class="col-path">Endpoint Path</span>
+              <span class="col-latency">Latency</span>
+              <span class="col-time">Time</span>
+            </div>
+            <div class="traffic-items-list" id="traffic-items-container">
+              <div class="empty-state">
+                <p>Waiting for incoming HTTP requests...</p>
+                <small>Send requests to <code>/api/v1/telemetry</code>, <code>/api/collections/users</code>, or custom endpoints</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="traffic-detail-panel" id="traffic-detail-view">
+            <div class="empty-detail-placeholder">
+              <p>Select a request from the stream to inspect wire details</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: MOCK ROUTES STUDIO -->
+      <section id="tab-mocks" class="tab-pane">
+        <div class="pane-toolbar">
+          <div class="toolbar-title">
+            <h3>Dynamic Mock Endpoints</h3>
+            <p class="subtitle">Mock REST APIs with dynamic faker interpolation, latency simulation, and schema validation.</p>
+          </div>
+          <button id="new-mock-btn" class="btn btn-primary btn-sm">+ New Mock Route</button>
+        </div>
+
+        <div class="mock-grid" id="mock-routes-container">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+
+      <!-- TAB 3: REST COLLECTION STORE -->
+      <section id="tab-collections" class="tab-pane">
+        <div class="pane-toolbar">
+          <div class="toolbar-title">
+            <h3>Stateful In-Memory REST Collections</h3>
+            <p class="subtitle">Ready-to-use CRUD REST collections with built-in query filters, search, and pagination.</p>
+          </div>
+          <div class="collection-picker-group">
+            <select id="collection-select" class="select-control">
+              <option value="users">users collection</option>
+              <option value="payments">payments collection</option>
+            </select>
+            <button id="add-collection-item-btn" class="btn btn-primary btn-sm">+ Add Item</button>
+          </div>
+        </div>
+
+        <div class="collection-viewer">
+          <div class="collection-meta-bar" id="collection-meta-info">
+            <!-- Populated dynamically -->
+          </div>
+          <div class="collection-table-wrapper" id="collection-table-container">
+            <!-- Table populated dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: SCHEMA VALIDATOR WORKBENCH -->
+      <section id="tab-schema" class="tab-pane">
+        <div class="pane-toolbar">
+          <div class="toolbar-title">
+            <h3>JSON Schema Workbench (Zero-Dep AJV/Zod Replacement)</h3>
+            <p class="subtitle">Test payloads against JSON Schema Draft-07 subset or auto-infer schemas from JSON samples.</p>
+          </div>
+          <div class="schema-workbench-actions">
+            <button id="schema-infer-btn" class="btn btn-secondary btn-sm">Infer from Payload</button>
+            <button id="schema-validate-btn" class="btn btn-primary btn-sm">▶ Validate Payload</button>
+          </div>
+        </div>
+
+        <div class="schema-editor-grid">
+          <div class="editor-column">
+            <label class="column-label">JSON Schema Definition</label>
+            <textarea id="schema-editor-input" class="code-textarea" spellcheck="false"></textarea>
+          </div>
+          <div class="editor-column">
+            <label class="column-label">Sample JSON Data Payload</label>
+            <textarea id="data-editor-input" class="code-textarea" spellcheck="false"></textarea>
+          </div>
+        </div>
+
+        <div class="schema-result-box" id="schema-validation-result">
+          <div class="validation-status-banner info">
+            Click <strong>"Validate Payload"</strong> to evaluate schema conformance.
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: WEBHOOK CATCHER -->
+      <section id="tab-webhooks" class="tab-pane">
+        <div class="pane-toolbar">
+          <div class="toolbar-title">
+            <h3>Instant Webhook Catcher & Signature Verifier</h3>
+            <p class="subtitle">Capture payloads from GitHub, Stripe, Shopify, or custom webhooks and verify HMAC signatures.</p>
+          </div>
+          <div class="webhook-bucket-actions">
+            <span class="bucket-label">Bucket:</span>
+            <input type="text" id="webhook-bucket-input" class="input-text-sm" value="default">
+            <button id="webhook-copy-url-btn" class="btn btn-secondary btn-sm">📋 Copy Webhook URL</button>
+            <button id="webhook-test-send-btn" class="btn btn-primary btn-sm">🚀 Send Test Event</button>
+          </div>
+        </div>
+
+        <div class="webhook-content-grid">
+          <div class="webhook-events-panel">
+            <div class="panel-header">Captured Events</div>
+            <div id="webhook-events-list" class="webhook-list">
+              <div class="empty-state">No webhook events received in this bucket yet.</div>
+            </div>
+          </div>
+
+          <div class="webhook-inspect-panel" id="webhook-detail-view">
+            <div class="empty-detail-placeholder">Select a captured event to view raw body and verify signatures.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 6: TRAFFIC DIFF & ANALYTICS -->
+      <section id="tab-diff" class="tab-pane">
+        <div class="pane-toolbar">
+          <div class="toolbar-title">
+            <h3>Request Diffing & Traffic Analytics</h3>
+            <p class="subtitle">Visually compare any two recorded HTTP requests or export specs to OpenAPI 3.0 / Postman.</p>
+          </div>
+          <div class="analytics-export-actions">
+            <button id="export-openapi-btn" class="btn btn-secondary btn-sm">📥 OpenAPI 3.0 Spec</button>
+            <button id="export-postman-btn" class="btn btn-secondary btn-sm">📥 Postman Collection</button>
+          </div>
+        </div>
+
+        <div class="analytics-summary-cards" id="analytics-summary-grid">
+          <div class="metric-card">
+            <span class="metric-label">Total Traffic</span>
+            <span class="metric-value" id="metric-total-requests">0</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Avg Response Latency</span>
+            <span class="metric-value" id="metric-avg-latency">0 ms</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Success Rate</span>
+            <span class="metric-value" id="metric-success-rate">100%</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Memory Footprint</span>
+            <span class="metric-value" id="metric-memory">0 MB</span>
+          </div>
+        </div>
+
+        <div class="diff-section">
+          <div class="diff-header-bar">
+            <h4>Side-by-Side Request Diff Engine</h4>
+            <div class="diff-selectors">
+              <select id="diff-select-a" class="select-control-sm"><option value="">Select Request A</option></select>
+              <span class="diff-vs">VS</span>
+              <select id="diff-select-b" class="select-control-sm"><option value="">Select Request B</option></select>
+              <button id="run-diff-btn" class="btn btn-primary btn-sm">Compare Requests</button>
+            </div>
+          </div>
+          <div id="diff-output-container" class="diff-output-box">
+            <div class="empty-state">Select two requests from the dropdowns above to view deep JSON and header diffs.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 7: STDLIB AUDIT & LOG -->
+      <section id="tab-audit" class="tab-pane">
+        <div class="pane-toolbar">
+          <div class="toolbar-title">
+            <h3>Hackathon Zero-Dependency Audit & STDLIB Log</h3>
+            <p class="subtitle">Verification proof that 100% of functionality is powered by the Node.js Standard Library.</p>
+          </div>
+          <button id="run-audit-btn" class="btn btn-primary btn-sm">🛡️ Run Live Audit</button>
+        </div>
+
+        <div class="audit-dashboard-grid">
+          <div class="audit-card">
+            <h4>Runtime Dependency Audit</h4>
+            <div class="audit-check-item pass">
+              <span class="check-icon">✓</span>
+              <div>
+                <strong>package.json dependencies: 0</strong>
+                <p>Zero third-party runtime npm dependencies installed or declared.</p>
+              </div>
+            </div>
+            <div class="audit-check-item pass">
+              <span class="check-icon">✓</span>
+              <div>
+                <strong>Strict node:* Standard Library Imports</strong>
+                <p>All core modules (router, schema, mock engine, WAL, SSE) use standard library primitives.</p>
+              </div>
+            </div>
+            <div class="audit-check-item pass">
+              <span class="check-icon">✓</span>
+              <div>
+                <strong>100% Offline Self-Contained Web UI</strong>
+                <p>No external CDN links, no Tailwind runtime, no React bundle. Pure vanilla HTML5/CSS3/ES6.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="audit-card">
+            <h4>STDLIB Architecture Substitutions</h4>
+            <table class="stdlib-mini-table">
+              <thead>
+                <tr>
+                  <th>Target Package</th>
+                  <th>Standard Library Replacement</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><code>express</code></td><td><code>node:http</code> + custom trie router</td></tr>
+                <tr><td><code>ajv / zod</code></td><td><code>src/schema/validator.mjs</code> (Draft-07)</td></tr>
+                <tr><td><code>@faker-js/faker</code></td><td><code>node:crypto</code> + <code>src/mock/faker.mjs</code></td></tr>
+                <tr><td><code>ws / socket.io</code></td><td>Server-Sent Events (SSE) via <code>node:http</code></td></tr>
+                <tr><td><code>sqlite3 / level</code></td><td>Append-Only WAL in <code>node:fs</code> with SHA-256</td></tr>
+                <tr><td><code>chalk / colorette</code></td><td>ANSI escape sequence formatters</td></tr>
+                <tr><td><code>jest / mocha</code></td><td><code>node:test</code> + <code>node:assert</code></td></tr>
+                <tr><td><code>fast-json-patch</code></td><td>Custom recursive object diff engine</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Modal for Test Request / Custom Mock -->
+    <div id="modal-container" class="modal-backdrop hidden">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h3 id="modal-title">Modal Title</h3>
+          <button id="modal-close-btn" class="btn-close">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-body">
+          <!-- Dynamic Form Content -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
