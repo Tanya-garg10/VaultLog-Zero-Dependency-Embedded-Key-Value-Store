@@ -1,6 +1,6 @@
 {
-  "name": "WireForge Zero",
-  "description": "Zero-dependency developer API sandbox, dynamic mock server, JSON Schema validator, request diffing, and WAL-backed traffic replay studio built with standard library.",
+  "name": "VaultLog",
+  "description": "A persistent embedded key-value store built entirely with Go 1.27 standard library — featuring an append-only log, in-memory indexing, crash/restart recovery, and zero third-party runtime dependencies.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
